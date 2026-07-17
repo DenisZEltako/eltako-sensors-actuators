@@ -1,0 +1,16 @@
+{
+  "domain": "eltako_sensors_actuators",
+  "name": "ELTAKO Sensors & Actuators",
+  "codeowners": [
+    "@DenisZEltako"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/DenisZEltako/eltako-sensors-actuators",
+  "issue_tracker": "https://github.com/DenisZEltako/eltako-sensors-actuators/issues",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "requirements": [
+    "pyserial==3.5"
+  ],
+  "version": "0.1.146"
+}

@@ -1,0 +1,27 @@
+dump_gateway_state:
+  name: Dump gateway state
+  description: Writes current gateway state to the Home Assistant log for debugging.
+
+probe_gateway:
+  name: Probe gateway
+  description: Actively probes the selected ELTAKO gateway again and writes the detected type/base-id to the Home Assistant log.
+  fields:
+    entry_id:
+      name: Config entry ID
+      description: Optional Home Assistant config entry ID. If omitted, all ELTAKO gateways are probed.
+      required: false
+      example: "01J..."
+      selector:
+        text:
+
+reload_config:
+  name: Reload ELTAKO configuration
+  description: Manually reloads one or all ELTAKO Sensors & Actuators config entries after saved option/YAML changes.
+  fields:
+    entry_id:
+      name: Config entry ID
+      description: Optional Home Assistant config entry ID. If omitted, all ELTAKO gateways are reloaded.
+      required: false
+      example: "01J..."
+      selector:
+        text:
