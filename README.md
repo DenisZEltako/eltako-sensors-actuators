@@ -4,9 +4,8 @@
 [![Version](https://img.shields.io/badge/Version-0.1.146-3498db.svg)](https://github.com/DenisZEltako/eltako-sensors-actuators/releases)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-3498db.svg)](LICENSE)
 
-Eine privat entwickelte Home-Assistant-Integration für unterstützte ELTAKO
-EnOcean-Sensoren und -Aktoren. Sie verbindet kompatible Gateways lokal über
-eine serielle oder TCP-Verbindung und legt die erkannten Geräte als Entitäten
+Home-Assistant-Integration für unterstützte ELTAKO EnOcean-Sensoren und -Aktoren. 
+Sie verbindet kompatible Gateways lokal über eine serielle oder TCP-Verbindung und legt die erkannten Geräte als Entitäten
 in Home Assistant an. Eine Cloud-Verbindung ist dafür nicht erforderlich.
 
 > [!IMPORTANT]
