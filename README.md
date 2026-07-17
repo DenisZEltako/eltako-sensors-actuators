@@ -1,115 +1,165 @@
-#HA Integration for ELTAKO Sensors & Actuators
+# ELTAKO Sensors & Actuators für Home Assistant
 
-Unofficial Home Assistant custom integration for supported ELTAKO EnOcean
-sensors and actuators.
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-3498db.svg)](https://hacs.xyz/)
+[![Version](https://img.shields.io/badge/Version-0.1.146-3498db.svg)](https://github.com/DenisZEltako/eltako-sensors-actuators/releases)
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-3498db.svg)](LICENSE)
 
-The integration connects compatible gateways through a local serial or network
-connection and creates Home Assistant entities from an EEDTOY YAML export.
+Eine privat entwickelte Home-Assistant-Integration für unterstützte ELTAKO
+EnOcean-Sensoren und -Aktoren. Sie verbindet kompatible Gateways lokal über
+eine serielle oder TCP-Verbindung und legt die erkannten Geräte als Entitäten
+in Home Assistant an. Eine Cloud-Verbindung ist dafür nicht erforderlich.
 
-## Version
+> [!IMPORTANT]
+> Dieses Projekt ist eine inoffizielle Community-Integration. Es ist kein
+> offizielles Produkt der ELTAKO GmbH und wird nicht offiziell von der ELTAKO
+> GmbH unterstützt.
 
-Current release: **0.1.146**
+## Funktionen
 
-## Supported gateways
+- Einrichtung über die Home-Assistant-Benutzeroberfläche
+- Lokale Kommunikation über serielle oder TCP-Gateways
+- Import einer mit EEDTOY erzeugten YAML-Konfiguration
+- Unterstützung mehrerer Gateway-Blöcke innerhalb einer Konfiguration
+- Home-Assistant-Entitäten für Sensoren, Binärsensoren, Taster, Schalter,
+  Leuchten, Beschattung und Klima
+- Aktualisierung eingehender Telegramme über `local_push`
+- Deutsche und englische Übersetzungen
+- Installation und Updates über HACS
+
+## Unterstützte Gateways
 
 - ELTAKO FAM14
 - ELTAKO FAM-USB
 - ELTAKO FGW14-USB
-- Compatible serial or TCP connections supported by the integration
+- Weitere von der Integration unterstützte serielle oder TCP-Verbindungen
 
-## Supported devices
+## Unterstützte Geräte
 
-The integration supports selected ELTAKO Series 14, 61, 62 and 71 actuators,
-sensors, meters, climate devices and EnOcean buttons. The exact entities are
-created from the device definitions in an EEDTOY YAML export.
+Unterstützt werden ausgewählte Sensoren und Aktoren der ELTAKO-Baureihen 14,
+61, 62 und 71. Die tatsächlich angelegten Entitäten richten sich nach den
+Gerätedefinitionen des EEDTOY-YAML-Exports.
 
-Supported device families include, among others:
+Dazu gehören unter anderem:
 
-- Switching, dimming, cover and RGBW actuators
-- Temperature, humidity, air-quality and movement sensors
-- Window and door contacts and EnOcean buttons
-- Heating and climate devices, including FHK and FKS-SV profiles
-- Electricity meters using supported EnOcean EEPs
+- Schalt-, Dimm-, Beschattungs- und RGBW-Aktoren
+- Temperatur-, Feuchte-, Luftgüte- und Bewegungssensoren
+- Fenster- und Türkontakte sowie EnOcean-Taster
+- Heizungs- und Klimageräte einschließlich FHK- und FKS-SV-Profilen
+- Stromzähler mit unterstützten EnOcean Equipment Profiles (EEPs)
 
-## Installation with HACS
+## EEDTOY
 
-This repository can be installed as a custom HACS repository.
+Die Geräte- und Gateway-Konfiguration für diese Integration wird mit
+[EEDTOY](https://github.com/DenisZEltako/eedtoy) erstellt. EEDTOY erzeugt den
+YAML-Export, der anschließend über die Optionen der Integration in Home
+Assistant importiert wird.
 
-1. Open **HACS** in Home Assistant.
-2. Open the menu in the top-right corner.
-3. Select **Custom repositories**.
-4. Add the following repository URL:
+Das EEDTOY-Repository wird separat veröffentlicht. Bis zur Veröffentlichung
+kann der Link noch auf eine nicht vorhandene GitHub-Seite führen.
+
+## Installation mit HACS
+
+HACS muss bereits in Home Assistant installiert sein. Mit dem folgenden Button
+kann das Repository direkt in HACS geöffnet und als benutzerdefiniertes
+Repository hinzugefügt werden:
+
+[![Home Assistant öffnen und dieses Repository in HACS anzeigen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DenisZEltako&repository=eltako-sensors-actuators&category=integration)
+
+Anschließend:
+
+1. Das Repository in HACS hinzufügen.
+2. **ELTAKO Sensors & Actuators** öffnen und **Herunterladen** auswählen.
+3. Home Assistant neu starten.
+4. **Einstellungen → Geräte & Dienste → Integration hinzufügen** öffnen.
+5. Nach **ELTAKO Sensors & Actuators** suchen und die Einrichtung starten.
+
+### Manuell als benutzerdefiniertes Repository hinzufügen
+
+Falls der Button nicht verwendet werden kann:
+
+1. In Home Assistant **HACS** öffnen.
+2. Oben rechts das Menü öffnen und **Benutzerdefinierte Repositories** wählen.
+3. Diese Repository-Adresse eintragen:
 
    ```text
    https://github.com/DenisZEltako/eltako-sensors-actuators
    ```
 
-5. Select **Integration** as the repository type.
-6. Open **ELTAKO Sensors & Actuators** in HACS and select **Download**.
-7. Restart Home Assistant.
-8. Open **Settings → Devices & services → Add integration**.
-9. Search for **ELTAKO Sensors & Actuators**.
+4. Als Kategorie **Integration** auswählen und das Repository hinzufügen.
+5. Die Integration herunterladen und Home Assistant neu starten.
 
-## Manual installation
+## Manuelle Installation ohne HACS
 
-Copy this directory:
+Den Ordner
 
 ```text
 custom_components/eltako_sensors_actuators
 ```
 
-to the Home Assistant configuration directory:
+nach
 
 ```text
 /config/custom_components/eltako_sensors_actuators
 ```
 
-Restart Home Assistant afterward.
+kopieren und Home Assistant anschließend neu starten.
 
-## Configuration
+## Konfiguration
 
-1. Add the integration under **Settings → Devices & services**.
-2. Select the gateway and serial or network connection.
-3. Open the integration options.
-4. Import or paste the YAML generated by EEDTOY.
-5. Follow the integration dialog when the YAML contains multiple gateway
-   blocks.
+1. Unter **Einstellungen → Geräte & Dienste** die Integration hinzufügen.
+2. Das Gateway sowie die serielle oder Netzwerkverbindung auswählen.
+3. Die Optionen der Integration öffnen.
+4. Die mit [EEDTOY](https://github.com/DenisZEltako/eedtoy) erzeugte
+   YAML-Konfiguration einfügen oder importieren.
+5. Bei mehreren Gateway-Blöcken den Hinweisen im Einrichtungsdialog folgen.
 
-Stable `/dev/serial/by-id/...` paths are recommended on Home Assistant OS and
-Linux systems because `/dev/ttyUSB*` assignments can change after a restart or
-USB reconnection.
+Unter Home Assistant OS und Linux sollte möglichst ein stabiler Gerätepfad wie
+`/dev/serial/by-id/...` verwendet werden. Bezeichnungen wie `/dev/ttyUSB0`
+können sich nach einem Neustart oder erneutem Anschließen des USB-Geräts ändern.
 
-## Reporting problems
+## Aktuelle Version
 
-Please create an issue and include:
+### 0.1.146
 
-- Home Assistant version
-- Integration version
-- Gateway model
-- Relevant EEP and device model
-- Sanitized YAML device definition
-- Relevant Home Assistant log entries
+- Für FLGTF wird eine gemeinsame Entität **Letztes Telegramm** pro physischem
+  Gerät verwendet.
+- Der Zeitstempel wird durch die Profile A5-09-0C für TVOC und A5-04-02 für
+  Temperatur und Luftfeuchtigkeit aktualisiert.
+- Bereits vorhandene Diagnoseentitäten für EnOcean-IDs bleiben erhalten.
+- Veraltete doppelte FLGTF-Zeitstempel werden beim Start aus der Entity Registry
+  entfernt.
+- Die Temperaturunterstützung für FBHT55ESB ist enthalten.
+- Im Dialog für den EEDTOY-YAML-Import wird keine Versionsnummer mehr im Titel
+  angezeigt.
 
-Issue tracker:
-https://github.com/DenisZEltako/eltako-sensors-actuators/issues
+## Fehler melden
 
-Do not publish passwords, tokens, private network credentials or unrelated
-personal information in an issue.
+Fehler und Verbesserungsvorschläge können über die
+[GitHub-Issues](https://github.com/DenisZEltako/eltako-sensors-actuators/issues)
+gemeldet werden. Hilfreich sind dabei:
 
-## Legal notice
+- Home-Assistant-Version
+- Version dieser Integration
+- Gateway-Modell
+- Betroffenes EEP und Gerätemodell
+- Bereinigter YAML-Geräteabschnitt
+- Relevante Einträge aus dem Home-Assistant-Protokoll
 
-This is a privately developed, unofficial community integration for Home
-Assistant. It is not an official product of ELTAKO GmbH and is not officially
-supported by ELTAKO GmbH.
+Bitte keine Passwörter, Zugangstoken, privaten Netzwerkdaten oder sonstigen
+persönlichen Informationen veröffentlichen.
 
-ELTAKO and the referenced product names are trademarks of ELTAKO GmbH. The name
-and logo are used solely to identify compatible products. Their use does not
-imply official endorsement.
+## Rechtlicher Hinweis
 
-## License
+Dieses Projekt ist eine privat entwickelte, inoffizielle Community-Integration
+für Home Assistant. Es ist kein offizielles Produkt der ELTAKO GmbH und wird
+nicht offiziell von der ELTAKO GmbH unterstützt.
 
-The integration source code is licensed under the MIT License. See
-[`LICENSE`](LICENSE).
+ELTAKO und die genannten Produktbezeichnungen sind Marken der ELTAKO GmbH. Name
+und Logo werden ausschließlich zur Kennzeichnung kompatibler Produkte
+verwendet. Daraus ergibt sich keine offizielle Unterstützung oder Empfehlung.
 
-Third-party dependency notices are available in
+## Lizenz und Abhängigkeiten
+
+Der Quellcode dieser Integration steht unter der [MIT-Lizenz](LICENSE).
+Hinweise zu verwendeten Drittanbieter-Abhängigkeiten befinden sich in
 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
