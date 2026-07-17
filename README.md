@@ -1,4 +1,4 @@
-# ELTAKO Sensors & Actuators
+#HA Integration for ELTAKO Sensors & Actuators
 
 Unofficial Home Assistant custom integration for supported ELTAKO EnOcean
 sensors and actuators.
