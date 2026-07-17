@@ -53,8 +53,6 @@ Die Geräte- und Gateway-Konfiguration für diese Integration wird mit
 YAML-Export, der anschließend über die Optionen der Integration in Home
 Assistant importiert wird.
 
-Das EEDTOY-Repository wird separat veröffentlicht. Bis zur Veröffentlichung
-kann der Link noch auf eine nicht vorhandene GitHub-Seite führen.
 
 ## Installation mit HACS
 
