@@ -10,19 +10,6 @@ connection and creates Home Assistant entities from an EEDTOY YAML export.
 
 Current release: **0.1.146**
 
-### Changes in 0.1.146
-
-- FLGTF now provides one shared `Letztes Telegramm` entity for the physical
-  device.
-- The shared timestamp is updated by both FLGTF profiles: A5-09-0C for TVOC and
-  A5-04-02 for temperature and humidity.
-- Existing EnOcean-ID diagnostic entities remain available.
-- Obsolete duplicate FLGTF timestamp entities are removed from the Home
-  Assistant entity registry during startup.
-- FBHT55ESB temperature support introduced in 0.1.145 remains included.
-- The EEDTOY YAML import dialog no longer displays an integration version in
-  its title.
-
 ## Supported gateways
 
 - ELTAKO FAM14
