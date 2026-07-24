@@ -5,7 +5,7 @@
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-3498db.svg)](LICENSE)
 
 Home-Assistant-Integration für unterstützte ELTAKO EnOcean-Sensoren und -Aktoren. 
-Sie verbindet kompatible Gateways lokal über eine serielle oder TCP-Verbindung und legt die erkannten Geräte als Entitäten
+Sie verbindet Eltako Gateways lokal über eine serielle Verbindung und legt die erkannten Geräte als Entitäten
 in Home Assistant an. Eine Cloud-Verbindung ist dafür nicht erforderlich.
 
 > [!IMPORTANT]
@@ -30,7 +30,6 @@ in Home Assistant an. Eine Cloud-Verbindung ist dafür nicht erforderlich.
 - ELTAKO FAM14
 - ELTAKO FAM-USB
 - ELTAKO FGW14-USB
-- Weitere von der Integration unterstützte serielle oder TCP-Verbindungen
 
 ## Unterstützte Geräte
 
