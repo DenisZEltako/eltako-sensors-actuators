@@ -2,6 +2,8 @@
 
 Home-Assistant-Custom-Integration für die von D. Zirnbauer freigegebene ELTAKO-Geräteliste.
 
+[![Home Assistant öffnen und dieses Repository in HACS anzeigen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DenisZEltako&repository=eltako-sensors-actuators&category=integration)
+
 ## Freigegebener Gerätekatalog (v0.1.153)
 
 - F2T55 – Taster 2-Kanal EU
@@ -41,7 +43,15 @@ Home-Assistant-Custom-Integration für die von D. Zirnbauer freigegebene ELTAKO-
 
 Nicht aufgeführte Produktbezeichnungen gehören nicht zum freigegebenen Katalog. Gemeinsame EEP-Decoder bleiben intern erhalten, soweit sie für die oben genannten Geräte erforderlich sind.
 
-## Installation
+## Installation über HACS
+
+Über den folgenden Button kann das Repository direkt in HACS geöffnet und als benutzerdefiniertes Integrations-Repository hinzugefügt werden:
+
+[![Home Assistant öffnen und dieses Repository in HACS anzeigen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DenisZEltako&repository=eltako-sensors-actuators&category=integration)
+
+Danach in HACS **ELTAKO Sensors & Actuators** herunterladen und Home Assistant vollständig neu starten.
+
+## Manuelle Installation
 
 Den Ordner `custom_components/eltako_sensors_actuators` nach Home Assistant kopieren und Home Assistant vollständig neu starten.
 
