@@ -135,7 +135,7 @@ def _serial_gateway_hint(device: str, description: str | None, hwid: str | None)
     if kind == CONNECTION_KIND_ENOCEAN_USB:
         return "FAM-USB / EnOcean USB-Gateway"
 
-    return "Gateway automatisch erkennen"
+    return "ELTAKO Gateway"
 
 
 def _friendly_serial_label(device: str, description: str | None, hwid: str | None) -> str:
@@ -160,6 +160,9 @@ def _list_serial_ports() -> dict[str, dict[str, str]]:
         hwid = getattr(port, "hwid", None)
 
         if _is_noise_serial_port(device, description, hwid):
+            continue
+
+        if _infer_connection_kind(device, description, hwid) == CONNECTION_KIND_UNKNOWN:
             continue
 
         grouped.setdefault(_dedupe_group_key(port), []).append(port)
