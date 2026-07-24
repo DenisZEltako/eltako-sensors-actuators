@@ -4,7 +4,7 @@ Home-Assistant-Custom-Integration für untenstehende ELTAKO-Geräte.
 
 [![Home Assistant öffnen und dieses Repository in HACS anzeigen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DenisZEltako&repository=eltako-sensors-actuators&category=integration)
 
-## Freigegebener Gerätekatalog (v0.1.153)
+## Freigegebener Gerätekatalog (v0.1.154)
 
 - F2T55 – Taster 2-Kanal EU
 - FT55, F4T55E – Taster 4-Kanal EU
@@ -49,13 +49,20 @@ Nicht aufgeführte Produktbezeichnungen gehören nicht zum freigegebenen Katalog
 
 [![Home Assistant öffnen und dieses Repository in HACS anzeigen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DenisZEltako&repository=eltako-sensors-actuators&category=integration)
 
-Danach in HACS **ELTAKO Sensors & Actuators** herunterladen und Home Assistant vollständig neu starten.
+Danach in HACS **ELTAKO Sensors & Actuators** herunterladen. Bei einem HACS-Update kann Home Assistant einen Neustart verlangen, damit neuer Integrationscode geladen wird. Änderungen an Gateway oder EEDTOY-YAML werden dagegen durch einen Integrations-Reload übernommen.
 
 ## Manuelle Installation
 
-Den Ordner `custom_components/eltako_sensors_actuators` nach Home Assistant kopieren und Home Assistant vollständig neu starten.
+Den Ordner `custom_components/eltako_sensors_actuators` nach Home Assistant kopieren und Home Assistant neu laden beziehungsweise neu starten.
 
-## FUTH55ED (v0.1.153)
+## Änderungen in v0.1.154
+
+- Unbekannte serielle Geräte werden nicht mehr als „Gateway automatisch erkennen“ angeboten.
+- Angezeigt werden nur eindeutig erkannte FAM14-, FGW14-USB- und FAM-USB-Anschlüsse.
+- Der manuelle Pfad beziehungsweise Netzwerkpfad bleibt weiterhin verfügbar.
+- HACS blendet den Entwicklungszweig `main` aus, damit nur veröffentlichte Versionen installiert werden.
+
+## FUTH55ED (v0.1.154)
 
 Unterstützte Betriebsarten aus EEDTOY v1.0.88:
 
@@ -67,7 +74,7 @@ Unterstützte Betriebsarten aus EEDTOY v1.0.88:
 
 Der FUTH55ED wird passiv ausgewertet und nicht als FKS-SV-Aktor mit einer virtuellen `sender.id` behandelt.
 
-## FTR55/65-Familie (v0.1.153)
+## FTR55/65-Familie (v0.1.154)
 
 Unterstützte Modelle: FTR65DSB, FTR55DSB, FTR55EHB, FTR55ESB, FTR65HB, FTRF65HB, FTR55HB, FTR65SB, FTRF65SB und FTR55SB.
 
@@ -75,7 +82,7 @@ Unterstützte Modelle: FTR65DSB, FTR55DSB, FTR55EHB, FTR55ESB, FTR65HB, FTRF65HB
 - Betriebsart FHK: A5-10-06, Lerntelegramm `40-30-0D-87`, DB2 Solltemperatur, DB1 invertierte Isttemperatur, DB0 `0F`.
 - Sollwertbereich 12–28 °C; 8 °C wird als Frostschutz erkannt.
 
-## FDG14 (v0.1.153)
+## FDG14 (v0.1.154)
 
 - A5-38-08 / FUNC=38 / Command 2.
 - Direkte Helligkeitsvorgabe 0–100 %.
@@ -83,7 +90,7 @@ Unterstützte Modelle: FTR65DSB, FTR55DSB, FTR55EHB, FTR55ESB, FTR65HB, FTRF65HB
 - Lerntelegramm `E0-40-0D-80`.
 - Statusrückmeldungen liefern Ein/Aus, Dimmwert und Dimmgeschwindigkeit an Home Assistant.
 
-## FFG7B (v0.1.153)
+## FFG7B (v0.1.154)
 
 - A5-14-09 und F6-10-00 werden anhand des tatsächlich empfangenen ORG automatisch unterschieden, auch wenn im YAML das andere FFG7B-Profil gewählt wurde.
 - A5-14-09 wertet den Fensterzustand robust in Standard- und umgekehrter Byte-Darstellung aus.
