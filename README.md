@@ -1,6 +1,6 @@
 # ELTAKO Sensors & Actuators
 
-Home-Assistant-Custom-Integration für die von D. Zirnbauer freigegebene ELTAKO-Geräteliste.
+Home-Assistant-Custom-Integration für untenstehende ELTAKO-Geräte.
 
 [![Home Assistant öffnen und dieses Repository in HACS anzeigen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DenisZEltako&repository=eltako-sensors-actuators&category=integration)
 
