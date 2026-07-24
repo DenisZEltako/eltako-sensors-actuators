@@ -1,0 +1,57 @@
+name: Release v0.1.154
+
+on:
+  push:
+    paths:
+      - .github/workflows/release-v0.1.154.yml
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag und Release erstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view v0.1.154 >/dev/null 2>&1; then
+            echo "Release v0.1.154 ist bereits vorhanden."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a v0.1.154 -m "ELTAKO Sensors & Actuators v0.1.154" "${GITHUB_SHA}"
+          git push origin v0.1.154
+
+          cat > release-notes.md <<'EOF'
+          ## ELTAKO Sensors & Actuators v0.1.154
+
+          ### Gateway-Auswahl
+
+          - Unbekannte serielle Geräte werden nicht mehr als „Gateway automatisch erkennen“ angeboten.
+          - Angezeigt werden nur eindeutig erkannte FAM14-, FGW14-USB- und FAM-USB-Anschlüsse.
+          - Der manuelle Pfad beziehungsweise Netzwerkpfad bleibt weiterhin verfügbar.
+
+          ### HACS
+
+          - Der Entwicklungszweig `main` wird in HACS ausgeblendet.
+          - HACS bietet dadurch nur noch veröffentlichte Versionen wie `v0.1.154` zur Installation an.
+          - Behebt die Meldung, dass eine verkürzte Commit-Version wie `59d1319` nicht verwendet werden kann.
+
+          ### Enthaltene Geräteunterstützung
+
+          - FTR55/65-Familie in den Betriebsarten TF61 und FHK
+          - FDG14 mit Helligkeits- und Dimmgeschwindigkeitssteuerung
+          - Verbesserte FFG7B-Auswertung für A5-14-09 und F6-10-00
+          EOF
+
+          gh release create v0.1.154 --title "ELTAKO Sensors & Actuators v0.1.154" --notes-file release-notes.md --verify-tag --latest
