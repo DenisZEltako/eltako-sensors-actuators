@@ -20,7 +20,7 @@ from .bus.eep_a5_20_01 import (
 from .bus.eep_a5_38_08 import build_a5_38_08_dimming, build_a5_38_08_switch
 from .bus.eep_f6_02 import build_f6_02_01_rocker
 from .bus.eep_h5_3f_7f import build_h5_3f_7f_cover
-from .bus.esp2 import ESP2Message, build_regular_4bs
+from .bus.esp2 import ESP2Message, ORG_4BS, ORG_RPS, build_regular_4bs
 from .bus.exceptions import UnsupportedCommandError
 from .bus.ids import format_address, parse_address
 from .bus.transport import SerialTransport
@@ -518,8 +518,50 @@ def _device_raw_option(device: dict[str, Any], key: str, default: Any = None) ->
     return raw.get(key, default)
 
 
+def _futh55ed_mode(device: Any) -> str:
+    if not isinstance(device, dict):
+        return ""
+    value = _device_raw_option(device, "room_controller_mode", None)
+    if value in (None, ""):
+        value = _device_raw_option(device, "futh55ed_mode", "")
+    mode = str(value or "").strip().lower().replace("-", "_")
+    if mode in {"tf61", "tf61r", "two_point", "2_point"}:
+        return "two_point"
+    return mode
+
+
+def _is_futh55ed_device(device: Any) -> bool:
+    if not isinstance(device, dict):
+        return False
+    if _futh55ed_mode(device):
+        return True
+    raw = device.get("raw") if isinstance(device.get("raw"), dict) else {}
+    text = " ".join(str(value or "") for value in (device.get("name"), device.get("model"), device.get("eltako"), raw.get("name"), raw.get("model"), raw.get("eltako"))).upper()
+    return any(model in text for model in ("FUTH55ED", "FTR55", "FTR65", "FTRF65"))
+
+
+def _is_ffg7b_device(device: Any) -> bool:
+    if not isinstance(device, dict):
+        return False
+    raw = device.get("raw") if isinstance(device.get("raw"), dict) else {}
+    explicit = _device_raw_option(device, "ffg7b_three_state")
+    if isinstance(explicit, str):
+        explicit = explicit.strip().lower() in {"1", "true", "yes", "on", "ja"}
+    if explicit is not None:
+        return bool(explicit)
+    text = " ".join(
+        str(value or "")
+        for value in (device.get("name"), device.get("model"), device.get("eltako"), raw.get("name"), raw.get("model"), raw.get("eltako"))
+    ).upper()
+    return "FFG7B" in text
+
+
 def _is_fks_sv_device(device: Any) -> bool:
-    return isinstance(device, dict) and str(device.get("eep") or "").strip().upper() == "A5-20-01"
+    return (
+        isinstance(device, dict)
+        and str(device.get("eep") or "").strip().upper() == "A5-20-01"
+        and not _is_futh55ed_device(device)
+    )
 
 
 def _normalized_address_or_none(value: Any) -> str | None:
@@ -855,8 +897,59 @@ class EltakoGateway:
                 logical_sender_id = str(device.get("id") or physical_sender_id).upper()
                 eep = str(device.get("eep") or "").upper() or None
 
-            direction = "actuator" if eep == "A5-20-01" else None
-            _, decoded = decode_esp2_message(msg, eep, direction=direction)
+            mode = _futh55ed_mode(device) if device is not None else ""
+            if eep == "A5-20-01":
+                direction = "controller" if mode == "fks_kp" else "actuator"
+            elif eep == "A5-20-04" and mode == "fks_hora":
+                direction = "controller"
+            else:
+                direction = None
+
+            # FFG7B exists in both A5-14-09 and F6-10-00 variants. Decode the
+            # physical telegram family from ORG as a safety net even when the
+            # wrong profile was selected in an older YAML. This fixes the case
+            # where Last Seen updated but all FFG7B state entities stayed
+            # unknown because the configured EEP and transmitted ORG differed.
+            decoder_eep = eep
+            if _is_ffg7b_device(device):
+                if msg.org == ORG_RPS:
+                    decoder_eep = "F6-10-00"
+                elif msg.org == ORG_4BS:
+                    decoder_eep = "A5-14-09"
+            _, decoded = decode_esp2_message(msg, decoder_eep, direction=direction)
+            if _is_ffg7b_device(device):
+                decoded.setdefault("configured_eep", eep)
+                decoded.setdefault("detected_eep", decoder_eep)
+
+            # The FUTH55ED learning frames are device-specific 4BS payloads.
+            # Suppress measurement keys for those frames so they cannot reset
+            # Home Assistant entities to fictitious values.
+            data_bytes = bytes(msg.body[2:6]) if len(msg.body) >= 6 else b""
+            learn_payloads = {
+                ("fhk", "A5-10-06"): bytes((0x40, 0x30, 0x0D, 0x87)),
+                ("two_point", "A5-38-08"): bytes((0xE0, 0x40, 0x0D, 0x80)),
+                ("hygrostat", "A5-10-12"): bytes((0x40, 0x90, 0x0D, 0x80)),
+            }
+            if mode and data_bytes == learn_payloads.get((mode, eep)):
+                decoded = {
+                    key: value
+                    for key, value in decoded.items()
+                    if key in {"raw", "data_hex", "org", "physical_sender_id", "last_seen"}
+                }
+                decoded.update(
+                    {
+                        "value": data_bytes.hex("-"),
+                        "learn": True,
+                        "learn_telegram": True,
+                        "data_telegram": False,
+                        "telegram_type": f"room_controller_{mode}_teach_in",
+                        "room_controller_mode": mode,
+                        "futh55ed_mode": mode,
+                    }
+                )
+            elif mode:
+                decoded.setdefault("room_controller_mode", mode)
+                decoded.setdefault("futh55ed_mode", mode)
 
         # FBHT55ESB is the temperature-capable variant of the FBH A5-08-01
         # telegram. FBH55ESB leaves DB1 unused, therefore temperature must be
@@ -1284,7 +1377,6 @@ def _is_rgbw_device_config(device: dict[str, Any]) -> bool:
         or sender_eep == "07-37-F7"
         or "FRGBW14" in name
         or "FRGBW71" in name
-        or "FWKKW" in name
         or "FRGBW14" in raw_text
         or "FRGBW71" in raw_text
     )
@@ -1306,7 +1398,7 @@ def _hs_to_rgb_tuple(value: Any) -> tuple[int, int, int] | None:
 # Data bytes are ordered DB3, DB2, DB1, DB0.
 TEACH_IN_A5_38_08_DIMMER_FUNC38 = bytes([0xE0, 0x40, 0x0D, 0x80])
 
-# FRGBW14 / FRGBW71L / FWKKW71L free profile EEP 07-37-F7 learn telegram.
+# FRGBW14 / FRGBW71L free profile EEP 07-37-F7 learn telegram.
 # GFA5-confirmed DB3..DB0: FF-F8-0D-87. This is required for the free RGB profile teach-in.
 TEACH_IN_07_37_F7_RGBW_FREE_PROFILE = bytes([0xFF, 0xF8, 0x0D, 0x87])
 
@@ -1368,11 +1460,8 @@ def _is_func38_switch_device(device: dict[str, Any], sender_eep: str, device_eep
     """Direct switching command, FUNC=38 / Command 1."""
     name = _device_name_upper(device)
     switch_models = (
-        "FSR61", "FSR61NP", "FSR61G", "FSR61LN", "FLC61", "FLC61NP",
-        "FSR14", "FSR14SSR", "FSR14-2", "FSR14-4", "FSR71",
-        "FR62", "FR62NP", "FL62", "FL62NP",
-        "FSSA", "FSVA", "FTN61", "FTN61NP",
-        "FSR16", "FSR16VA", "FL62-230V", "FR62-230V", "FR62NP-230V",
+        "FSR14", "FSR71", "FMZ14", "FSR61", "FSR61NP", "FSR61G", "FSR61LN",
+        "FLC61NP", "FR62", "FR62NP", "FL62", "FL62NP",
     )
     return any(model in name for model in switch_models) or device_eep in {"M5-38-08"}
 
@@ -1381,9 +1470,7 @@ def _is_func38_dimmer_device(device: dict[str, Any], sender_eep: str, device_eep
     """Direct dimming command, FUNC=38 / Command 2."""
     name = _device_name_upper(device)
     dimmer_models = (
-        "FDG14", "FDG71", "FDG71L", "FLD61", "FUD14", "FUD14-800", "FUD61NP",
-        "FUD61NPN", "FUD71", "FSUD", "FUD62", "FUD62NP", "FD62", "FD62NP",
-        "FD62NPN", "FUG61", "FUG61NP", "FSU", "FD2G14", "FD2G71",
+        "FUD14", "FUD71", "FDG14", "FD2G14", "FUD61NP", "FUD61NPN", "FD62NP", "FD62NPN",
     )
     return sender_eep == "A5-38-08" or device_eep == "A5-38-08" or any(model in name for model in dimmer_models)
 
@@ -1400,17 +1487,16 @@ def _is_fhk_pwm_device(device: dict[str, Any], sender_eep: str, device_eep: str)
 
 def _prefers_rocker_teach_in(device: dict[str, Any], sender_eep: str, device_eep: str, platform: str) -> bool:
     name = _device_name_upper(device)
-    if sender_eep in {"F6-02-01", "F6-02-02"}:
+    if sender_eep in {"F6-02-01"}:
         return True
     # Shading/roller actuators and simple relay/switch actuators from the
     # decentralized 61/62 families commonly learn a rocker telegram first.
     # FUD/FD dimmers are intentionally excluded because their documented
     # software teach-in uses FUNC=38 / A5-38-08 (E0-40-0D-80).
     rocker_models = (
-        "FSR61", "FSR62", "FSR71", "FLC61", "FL62", "FLD61",
-        "FSSA", "FSVA", "FSB61", "FSB62", "FSB71", "FJ62",
+        "FSR61", "FSR71", "FLC61NP", "FL62", "FSB61", "FSB71", "FJ62",
     )
-    dimmer_models = ("FUD", "FD62", "FUG", "FSUD", "FUD71")
+    dimmer_models = ("FUD14", "FUD71", "FDG14", "FUD61", "FD62")
     if any(model in name for model in dimmer_models):
         return False
     if any(model in name for model in rocker_models):
@@ -1656,6 +1742,11 @@ def _build_teach_in_message(device: dict[str, Any], gateway_type: str | None = N
         _LOGGER.info("ELTAKO teach-in matrix selected: FHK61SSR PWM, payload=E0-40-0D-80 device=%s", device.get("name"))
         return [build_regular_4bs(address, TEACH_IN_FHK61SSR_PWM, status=status, outgoing=True)]
 
+    if _is_futh55ed_device(device):
+        raise UnsupportedEltakoCommand(
+            "FUTH55ED sendet seine dokumentierten Lern- und Datentelegramme selbst; kein virtueller HA-Sender erforderlich"
+        )
+
     if sender_eep == "A5-20-01" or device_eep == "A5-20-01" or "FKS-SV" in name:
         raise UnsupportedEltakoCommand(
             "FKS-SV wird bidirektional eingelernt: Integration aktiv lassen und den Taster am Ventil kurz druecken"
@@ -1829,19 +1920,21 @@ def _build_actuator_message(device: dict[str, Any], command: str, **kwargs: Any)
                 return [build_a5_38_08_dimming(sender_id, 100, ramping_time=0, state=True) for _ in range(3)]
 
         if sender_eep == "A5-38-08":
+            dimming_speed = _safe_int(_device_raw_option(device, "dimming_speed", 0), 0)
+            dimming_speed = max(0, min(255, dimming_speed))
             if command == "turn_on":
                 brightness = int(kwargs.get("brightness", 255) or 255)
                 if device_eep == "A5-38-08":
                     percent = max(1, min(100, int(round(brightness / 255.0 * 100.0))))
-                    return build_a5_38_08_dimming(sender_id, percent, ramping_time=0, state=True)
+                    return build_a5_38_08_dimming(sender_id, percent, ramping_time=dimming_speed, state=True)
                 return build_a5_38_08_switch(sender_id, True)
 
             if command == "turn_off":
                 if device_eep == "A5-38-08":
-                    return build_a5_38_08_dimming(sender_id, 0, ramping_time=0, state=False)
+                    return build_a5_38_08_dimming(sender_id, 0, ramping_time=dimming_speed, state=False)
                 return build_a5_38_08_switch(sender_id, False)
 
-        if sender_eep in ("F6-02-01", "F6-02-02"):
+        if sender_eep in ("F6-02-01",):
             # Diagnostic/fallback only. Series-14 actuators generated by EEDTOY
             # should normally use sender.eep A5-38-08 for light commands.
             action = 1 if command == "turn_on" else 0

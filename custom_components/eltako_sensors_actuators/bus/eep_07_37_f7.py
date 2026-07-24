@@ -5,7 +5,7 @@ from .esp3 import build_esp3_radio_erp1_4bs_direct
 from .ids import parse_address
 
 
-# Eltako free profile 07-37-F7 for FRGBW14 / FRGBW71 / FWKKW71L.
+# Eltako free profile 07-37-F7 for FRGBW14 / FRGBW71L.
 # 4BS data bytes in this code are ordered as DB3, DB2, DB1, DB0.
 # According to the Eltako telegram description:
 #   DB0 = 0x0F controller telegram

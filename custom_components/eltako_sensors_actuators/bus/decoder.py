@@ -10,6 +10,9 @@ from .eep_a5_20_01 import (
     decode_a5_20_01_controller_telegram,
 )
 from .eep_a5_09_04 import decode_a5_09_04
+from .eep_a5_10_12 import decode_a5_10_12
+from .eep_a5_20_04 import decode_a5_20_04_controller_telegram
+from .eep_ffg7b import decode_ffg7b_a5, decode_ffg7b_rps
 
 
 def decode_esp2_message(
@@ -47,6 +50,10 @@ def decode_esp2_message(
                 decoded.update(decode_a5_20_01_controller_telegram(data))
             else:
                 decoded.update(decode_a5_20_01_actuator_status(data))
+        elif normalized_eep == "A5-20-04" and str(direction or "").lower() in {"controller", "to_actuator", "tx"}:
+            decoded.update(decode_a5_20_04_controller_telegram(data))
+        elif normalized_eep == "A5-10-12":
+            decoded.update(decode_a5_10_12(data))
         else:
             decoded.update(_decode_4bs(data, normalized_eep))
         return sender_id, decoded
@@ -79,20 +86,37 @@ def _decode_1bs(data_byte: int, eep: str) -> dict[str, Any]:
     return {"value": data_byte}
 
 def _decode_rps(data_byte: int, eep: str) -> dict[str, Any]:
-    if eep in ("F6-10-00", "D5-00-01"):
-        # ELTAKO contact telegram variants:
-        # - FTKE / EEP F6-10-00 / ORG 0x05: 0xE0 = open, 0xF0 = closed.
-        # - FTK/FTKB style telegrams seen in ELTAKO tools: 0x50 = open,
-        #   0x70 = closed.  Keep all explicit mappings before the generic
-        #   fallback; bit based decoding inverts 0xE0/0xF0.
-        if data_byte in (0xE0, 0x50, 0x10):
-            is_open = True
-        elif data_byte in (0xF0, 0x70, 0x30):
-            is_open = False
-        else:
+    if eep == "F6-10-00":
+        # FFG7B three-state window handle. The helper keeps the exact
+        # closed/open/tilted semantics in one place.
+        result = decode_ffg7b_rps(data_byte)
+        result["button_action"] = data_byte
+        return result
+    if eep == "D5-00-01":
+        # FTKE and other contact variants keep the known 0x50/0x70 and
+        # 0x10/0x30 mappings.
+        state_map = {
+            0x70: "geschlossen",
+            0x50: "offen",
+            0x30: "geschlossen",
+            0x10: "offen",
+        }
+        window_state = state_map.get(data_byte)
+        if window_state is None:
             is_open = bool(data_byte & 0x10)
-        return {"open": is_open, "closed": not is_open, "value": data_byte, "button_action": data_byte}
-    if eep in ("F6-02-01", "F6-02-02"):
+        else:
+            is_open = window_state != "geschlossen"
+        result = {
+            "open": is_open,
+            "closed": not is_open,
+            "tilted": False,
+            "value": data_byte,
+            "button_action": data_byte,
+        }
+        if window_state is not None:
+            result["window_state"] = window_state
+        return result
+    if eep == "F6-02-01":
         pressed = data_byte != 0x00
 
         # Eltako 4-way rocker mapping used by F2T55/FT55 style buttons.
@@ -128,6 +152,9 @@ def _decode_rps(data_byte: int, eep: str) -> dict[str, Any]:
 def _decode_4bs(data: bytes, eep: str) -> dict[str, Any]:
     db3, db2, db1, db0 = data
 
+    if eep == "A5-14-09":
+        return decode_ffg7b_a5(data)
+
     if eep == "D5-00-01":
         # ELTAKO FTKB also sends a 4BS voltage telegram with the same ID:
         # DB0 = 0x08, DB1 = 0x00, DB2 = battery voltage 0..5 V,
@@ -146,7 +173,7 @@ def _decode_4bs(data: bytes, eep: str) -> dict[str, Any]:
         return {"value": data.hex("-"), "telegram_type": "d5_00_01_4bs_unknown"}
 
     if eep == "A5-04-01":
-        # FFTSB / FFT60SB: DB2 = humidity 0..100 % encoded 0..250,
+        # FFT60SB: DB2 = humidity 0..100 % encoded 0..250,
         # DB1 = temperature 0..40 C encoded 0..250.
         humidity = round(max(0, min(250, db2)) / 250.0 * 100.0, 1)
         temperature = round(max(0, min(250, db1)) / 250.0 * 40.0, 1)
@@ -159,78 +186,36 @@ def _decode_4bs(data: bytes, eep: str) -> dict[str, Any]:
             "telegram_type": "temperature_humidity_a5_04_01",
         }
 
-    if eep in ("A5-04-02", "A5-04-03"):
-        # FTFSB can be configured for either ELTAKO A5-04-02 or the 10-bit
-        # A5-04-03 profile.  Do not turn the known teach-in payloads into
-        # measurements.  Also detect a stale/wrong YAML profile from the
-        # unambiguous data layout:
-        #   A5-04-02: DB3=0, DB2 humidity 0..250, DB1 temperature 0..250,
-        #              DB0.1 indicates the temperature sensor is available.
-        #   A5-04-03: DB3 humidity 0..255, DB2.7..DB2.2=0,
-        #              DB2.1..DB1.0 temperature 0..1023, DB0.1=0.
-        teach_in_02 = data == bytes((0x10, 0x10, 0x0D, 0x87))
-        teach_in_03 = data == bytes((0x10, 0x18, 0x0D, 0x80))
-        if teach_in_02 or teach_in_03 or not bool(db0 & 0x08):
-            detected_eep = "A5-04-02" if teach_in_02 else "A5-04-03" if teach_in_03 else eep
+    if eep == "A5-04-02":
+        # FLGTF temperature/humidity profile:
+        # DB2 = humidity 0..100 % encoded 0..250,
+        # DB1 = temperature -20..60 C encoded 0..250.
+        teach_in = data == bytes((0x10, 0x10, 0x0D, 0x87)) or not bool(db0 & 0x08)
+        if teach_in:
             return {
                 "learn": True,
                 "learn_telegram": True,
                 "data_telegram": False,
                 "configured_eep": eep,
-                "detected_eep": detected_eep,
+                "detected_eep": "A5-04-02",
                 "value": data.hex("-"),
-                "telegram_type": f"temperature_humidity_{detected_eep.lower().replace('-', '_')}_teach_in",
+                "telegram_type": "temperature_humidity_a5_04_02_teach_in",
             }
-
-        detected_eep = eep
-        # The six upper bits of DB2 are reserved and always zero in A5-04-03.
-        # DB0.1 is reserved in A5-04-03 but is the temperature-availability bit
-        # in A5-04-02. These fields let us repair an accidentally selected
-        # FTFSB variant without guessing from the measured values themselves.
-        if db3 == 0x00 and (((db2 & 0xFC) != 0) or bool(db0 & 0x02)):
-            detected_eep = "A5-04-02"
-        elif (db2 & 0xFC) == 0 and not bool(db0 & 0x02):
-            detected_eep = "A5-04-03"
-
-        if detected_eep == "A5-04-02":
-            humidity_raw = max(0, min(250, db2))
-            temperature_raw = max(0, min(250, db1))
-            humidity = round(humidity_raw / 250.0 * 100.0, 1)
-            temperature = round(-20.0 + (temperature_raw / 250.0 * 80.0), 1)
-            return {
-                "temperature": temperature,
-                "humidity": humidity,
-                "learn": False,
-                "learn_telegram": False,
-                "data_telegram": True,
-                "temperature_available": bool(db0 & 0x02),
-                "temperature_raw_8bit": temperature_raw,
-                "humidity_raw_8bit": humidity_raw,
-                "configured_eep": eep,
-                "detected_eep": detected_eep,
-                "profile_corrected": detected_eep != eep,
-                "value": data.hex("-"),
-                "telegram_type": "temperature_humidity_a5_04_02",
-            }
-
-        humidity_raw = db3
-        temperature_raw = ((db2 & 0x03) << 8) | db1
-        humidity = round(humidity_raw / 255.0 * 100.0, 1)
-        temperature = round(-20.0 + (temperature_raw / 1023.0 * 80.0), 1)
+        humidity_raw = max(0, min(250, db2))
+        temperature_raw = max(0, min(250, db1))
         return {
-            "temperature": temperature,
-            "humidity": humidity,
+            "temperature": round(-20.0 + (temperature_raw / 250.0 * 80.0), 1),
+            "humidity": round(humidity_raw / 250.0 * 100.0, 1),
             "learn": False,
             "learn_telegram": False,
             "data_telegram": True,
-            "telegram_trigger": "event" if (db0 & 0x01) else "heartbeat",
-            "temperature_raw_10bit": temperature_raw,
+            "temperature_available": bool(db0 & 0x02),
+            "temperature_raw_8bit": temperature_raw,
             "humidity_raw_8bit": humidity_raw,
             "configured_eep": eep,
-            "detected_eep": detected_eep,
-            "profile_corrected": detected_eep != eep,
+            "detected_eep": "A5-04-02",
             "value": data.hex("-"),
-            "telegram_type": "temperature_humidity_a5_04_03",
+            "telegram_type": "temperature_humidity_a5_04_02",
         }
 
     if eep == "A5-09-04":
@@ -360,16 +345,19 @@ def _decode_4bs(data: bytes, eep: str) -> dict[str, Any]:
         # FTR55ESB show DB1 is transmitted inversely: a real room
         # temperature around 25.8 C appears as about 14.4 C with a direct
         # DB1*40/255 conversion. Therefore decode the actual temperature
-        # as (255-DB1)*40/255. Keep the setpoint mapping unchanged because
-        # the FTR handwheel/frost-symbol scale is manufacturer-specific.
+        # as (255-DB1)*40/255. DB2 maps 0..255 to 0..40 C; the normal
+        # adjustable range is 12..28 C and 8 C represents the frost symbol.
         target_temperature = round((db2 / 255.0) * 40.0, 1)
         current_temperature = round(((255 - db1) / 255.0) * 40.0, 1)
         slide_switch = db0 & 0x01
+        frost_protection = abs(target_temperature - 8.0) <= 0.2
         return {
             "target_temperature": target_temperature,
             "temperature": current_temperature,
             "hvac_mode": "heat" if slide_switch else "off",
             "slide_switch": slide_switch,
+            "frost_protection": frost_protection,
+            "setpoint_in_adjustable_range": 12.0 <= target_temperature <= 28.0,
             "button_action": db0,
             "value": data.hex("-"),
         }
@@ -379,7 +367,7 @@ def _decode_4bs(data: bytes, eep: str) -> dict[str, Any]:
     if eep == "A5-12-01":
         # EEP A5-12-01 Automated Meter Reading - Electricity.
         #
-        # Byte layout according to the publicly documented EnOcean AMR profile:
+        # Byte layout according to the eltako14bus/EnOcean AMR model:
         #   DB3..DB1  = 24-bit meter reading
         #   DB0[7:4]  = measurement channel / tariff information
         #   DB0[3]    = learn flag
@@ -406,7 +394,7 @@ def _decode_4bs(data: bytes, eep: str) -> dict[str, Any]:
             "is_meter_reading": data_type == 0,
         }
 
-        # ELTAKO special A5-12-01 telegram coding used by FSDG14, FSS12-12V DC,
+        # ELTAKO special A5-12-01 telegram coding used by FWZ12/FWZ14/DSZ14/F3Z14D,
         # FWZ14, FWZ12, F3Z14D, DSZ14DRS, DSZ14WDRS, WSZ14DRS and WSZ14DRSE:
         # DB0 is a fixed telegram type. DB3..DB1 is a 24-bit value.
         if db0 in (0x09, 0x19):
@@ -514,8 +502,18 @@ def _decode_4bs(data: bytes, eep: str) -> dict[str, Any]:
 
     if eep == "A5-38-08":
         if db3 == 0x02:
-            return {"brightness": round(max(0, min(100, db2)) / 100.0 * 255), "state": bool(db0 & 0x01), "value": data.hex("-")}
-        return {"state": bool(db0 & 0x01), "value": data.hex("-")}
+            percent = max(0, min(100, int(db2)))
+            state = bool(db0 & 0x01) and percent > 0
+            return {
+                "brightness": round(percent / 100.0 * 255),
+                "dimmer_percent": percent,
+                "dimming_speed": int(db1),
+                "dimming_value_blocked": bool(db0 & 0x04),
+                "state": state,
+                "on": state,
+                "value": data.hex("-"),
+            }
+        return {"state": bool(db0 & 0x01), "on": bool(db0 & 0x01), "value": data.hex("-")}
 
     if eep == "M5-38-08":
         return {"state": bool(db0 & 0x01), "value": data.hex("-")}

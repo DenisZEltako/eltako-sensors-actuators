@@ -8,7 +8,8 @@ from homeassistant.helpers.event import async_call_later
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 
 from .const import CONF_DEVICES, DOMAIN
-from .entity_base import EltakoBaseEntity, EltakoGatewayEntity, EltakoYamlEntity, normalize_eep, normalize_platform
+from .bus.eep_ffg7b import enrich_ffg7b_decoded
+from .entity_base import EltakoBaseEntity, EltakoGatewayEntity, EltakoYamlEntity, _futh55ed_mode, _is_futh55ed_device, _is_ffg7b_device, normalize_eep, normalize_platform
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +27,46 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
         platform = normalize_platform(device.get("platform"))
         eep = normalize_eep(device.get("eep"))
 
+        if _is_futh55ed_device(device):
+            mode = _futh55ed_mode(device)
+            if mode == "two_point" and eep == "A5-38-08":
+                entities.append(
+                    EltakoYamlBinarySensor(
+                        gateway,
+                        device,
+                        "state",
+                        None,
+                        suffix="Heizanforderung",
+                    )
+                )
+            elif mode == "fhk" and eep == "A5-10-06":
+                entities.append(
+                    EltakoYamlBinarySensor(
+                        gateway,
+                        device,
+                        "frost_protection",
+                        None,
+                        suffix="Frostschutz",
+                    )
+                )
+            elif mode == "fks_kp" and eep == "A5-20-01":
+                entities.append(EltakoYamlBinarySensor(gateway, device, "summer_mode", None, suffix="Sommerbetrieb"))
+            continue
+
+        if _is_ffg7b_device(device):
+            # Both open and tilted mean the window is not fully closed. The
+            # enum sensor on the sensor platform preserves the exact position.
+            entities.append(
+                EltakoYamlBinarySensor(
+                    gateway,
+                    device,
+                    "open",
+                    BinarySensorDeviceClass.WINDOW,
+                    suffix="Fenster offen",
+                )
+            )
+            continue
+
         if eep in ("A5-07-01", "A5-08-01") and platform in ("sensor", "binary_sensor"):
             # FBH/FBHT uses one telegram for the physical movement state in both
             # FBH mode (A5-08-01) and TF mode (A5-07-01). Do not route these
@@ -35,7 +76,7 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
             device_class = _device_class_from_yaml(device.get("device_class")) or _device_class_for_eep(eep)
             key = "open" if device_class in (BinarySensorDeviceClass.DOOR, BinarySensorDeviceClass.WINDOW, BinarySensorDeviceClass.OPENING) else "pressed"
             entities.append(EltakoYamlBinarySensor(gateway, device, key, device_class))
-            if eep in ("F6-02-01", "F6-02-02"):
+            if eep in ("F6-02-01",):
                 entities.extend(_rocker_position_entities(gateway, device))
         elif platform == "sensor" and eep == "A5-13-01":
             entities.append(EltakoYamlBinarySensor(gateway, device, "rain", BinarySensorDeviceClass.MOISTURE, suffix="Regen"))
@@ -139,7 +180,7 @@ def _device_class_for_eep(eep: str) -> BinarySensorDeviceClass | None:
         return BinarySensorDeviceClass.DOOR
     if eep == "D5-00-01":
         return BinarySensorDeviceClass.DOOR
-    if eep in ("F6-02-01", "F6-02-02"):
+    if eep in ("F6-02-01",):
         return None
     return None
 
@@ -166,6 +207,8 @@ class EltakoYamlBinarySensor(EltakoYamlEntity, BinarySensorEntity):
     def _handle_telegram(self, telegram) -> None:
         if str(telegram.sender_id).upper() != str(self.device_config.get("id")).upper():
             return
+        if _is_ffg7b_device(self.device_config):
+            enrich_ffg7b_decoded(telegram.decoded)
         if self.key not in telegram.decoded:
             return
         self._state = bool(telegram.decoded[self.key])

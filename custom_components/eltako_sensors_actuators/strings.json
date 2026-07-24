@@ -3,82 +3,82 @@
     "step": {
       "user": {
         "title": "ELTAKO Sensors & Actuators",
-        "description": "Configure the gateway and serial connection. Connections found: {port_count}.",
+        "description": "Gateway und seriellen Anschluss einrichten. Gefundene Anschluesse: {port_count}.",
         "data": {
-          "port": "Gateway / serial connection",
-          "manual_port": "Manual path, for example COM3, /dev/serial/by-id/... or tcp://host:port"
+          "port": "Gateway / serieller Anschluss",
+          "manual_port": "Manueller Pfad, z. B. COM3, /dev/serial/by-id/... oder tcp://host:port"
         }
       },
       "name": {
-        "title": "Set name",
-        "description": "The name was suggested from the selected gateway. You can change it if needed.",
+        "title": "Namen festlegen",
+        "description": "Der Name wurde aus dem ausgewaehlten Gateway vorgeschlagen. Du kannst ihn bei Bedarf anpassen.",
         "data": {
           "name": "Name"
         }
       }
     },
     "error": {
-      "missing_port": "Enter a connection or network path."
+      "missing_port": "Bitte einen Anschluss oder Netzwerkpfad angeben."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Configure ELTAKO Sensors & Actuators",
+        "title": "ELTAKO Sensors & Actuators konfigurieren",
         "menu_options": {
-          "connection": "Change gateway / serial connection",
-          "yaml": "Import or replace EEDTOY YAML"
+          "connection": "Gateway / seriellen Anschluss aendern",
+          "yaml": "EEDTOY YAML importieren oder ersetzen"
         }
       },
       "connection": {
-        "title": "Change gateway connection",
-        "description": "Change the gateway port here. The change is saved and the integration is then reloaded automatically. Connections found: {port_count}.",
+        "title": "Gateway-Anschluss aendern",
+        "description": "Hier kannst du den Gateway-Port aendern. Die Aenderung wird gespeichert und die Integration danach automatisch neu geladen. Gefundene Anschluesse: {port_count}.",
         "data": {
-          "port": "Gateway / serial connection",
-          "manual_port": "Manual path, for example COM3, /dev/serial/by-id/... or tcp://host:port"
+          "port": "Gateway / serieller Anschluss",
+          "manual_port": "Manueller Pfad, z. B. COM3, /dev/serial/by-id/... oder tcp://host:port"
         }
       },
       "yaml": {
-        "title": "Import EEDTOY YAML",
-        "description": "Select exactly one import source. Manual YAML and a file path are handled in separate dialogs so an old stored path cannot block text input.",
+        "title": "EEDTOY YAML importieren",
+        "description": "Wähle genau eine Importquelle. Manueller YAML-Code und Dateipfad werden in getrennten Dialogen verarbeitet, damit ein alter gespeicherter Pfad die Texteingabe nicht mehr blockieren kann.",
         "menu_options": {
-          "yaml_text": "Paste YAML manually",
-          "yaml_file": "Use a YAML file from the configuration directory"
+          "yaml_text": "YAML-Code manuell einfügen",
+          "yaml_file": "YAML-Datei aus dem Konfigurationsordner verwenden"
         }
       },
       "yaml_gateway": {
-        "title": "Select gateway block from YAML",
-        "description": "The YAML export contains multiple gateways. Select the gateway block that belongs to this Home Assistant hub. The configuration is then saved and the integration is reloaded automatically.",
+        "title": "Gateway-Block aus YAML auswaehlen",
+        "description": "Der YAML-Export enthaelt mehrere Gateways. Waehle den Gateway-Block aus, der zu diesem Home-Assistant-Hub gehoert. Danach wird die Konfiguration gespeichert und die Integration automatisch neu geladen.",
         "data": {
-          "selected_yaml_gateway_key": "Gateway block"
+          "selected_yaml_gateway_key": "Gateway-Block"
         }
       },
       "yaml_text": {
-        "title": "Paste EEDTOY YAML",
-        "description": "Paste the complete EEDTOY YAML export here. Any previously stored file path is ignored in this dialog. The integration is reloaded automatically after saving.",
+        "title": "EEDTOY YAML-Code manuell einfügen",
+        "description": "Füge hier den vollständigen EEDTOY-YAML-Export ein. Ein eventuell früher gespeicherter Dateipfad wird in diesem Dialog vollständig ignoriert. Nach dem Speichern wird die Integration automatisch neu geladen.",
         "data": {
-          "yaml_config": "EEDTOY YAML export"
+          "yaml_config": "EEDTOY YAML Export"
         }
       },
       "yaml_file": {
-        "title": "Import an EEDTOY YAML file",
-        "description": "The file must be located inside the Home Assistant configuration directory. Valid examples: /config/eedtoy.yaml, /homeassistant/eedtoy.yaml or eedtoy.yaml. Stored manual YAML is not used in this dialog.",
+        "title": "EEDTOY YAML-Datei importieren",
+        "description": "Die Datei muss innerhalb des Home-Assistant-Konfigurationsordners liegen. Gültige Beispiele: /config/eedtoy.yaml, /homeassistant/eedtoy.yaml oder eedtoy.yaml. Der gespeicherte manuelle YAML-Text wird in diesem Dialog nicht verwendet.",
         "data": {
-          "yaml_file_path": "YAML file path on Home Assistant"
+          "yaml_file_path": "YAML-Dateipfad auf Home Assistant"
         }
       }
     },
     "error": {
-      "missing_port": "Enter a connection or network path.",
-      "invalid_yaml": "The YAML export could not be read. Use a complete EEDTOY/Home Assistant ELTAKO YAML export.",
-      "no_devices_found": "The YAML export was read, but no devices were found.",
-      "file_not_found": "The YAML file was not found.",
-      "file_not_allowed": "For security reasons, only files inside the Home Assistant configuration directory can be read.",
-      "missing_gateway": "Select a gateway block.",
-      "yaml_source_required": "Enter a YAML file path or paste the EEDTOY YAML export into the text field.",
-      "yaml_file_required": "Enter a YAML file path.",
-      "sender_id_collision": "At least one FKS-SV sender.id is already assigned to another device or controller. Each independently controlled FKS-SV requires its own available sender ID.",
-      "invalid_yaml_tabs": "The YAML contains invalid tab characters in its indentation. Use spaces for YAML indentation."
+      "missing_port": "Bitte einen Anschluss oder Netzwerkpfad angeben.",
+      "invalid_yaml": "Der YAML-Export konnte nicht gelesen werden. Bitte einen vollstaendigen EEDTOY/Home-Assistant-ELTAKO YAML-Export verwenden.",
+      "no_devices_found": "Der YAML-Export wurde gelesen, aber es wurden keine Geraete gefunden.",
+      "file_not_found": "Die YAML-Datei wurde nicht gefunden.",
+      "file_not_allowed": "Aus Sicherheitsgruenden duerfen nur Dateien innerhalb des Home-Assistant-Konfigurationsordners gelesen werden.",
+      "missing_gateway": "Bitte einen Gateway-Block auswaehlen.",
+      "yaml_source_required": "Bitte einen YAML-Dateipfad angeben oder den EEDTOY YAML-Export in das Textfeld einfuegen.",
+      "yaml_file_required": "Bitte einen YAML-Dateipfad angeben.",
+      "sender_id_collision": "Mindestens eine FKS-SV sender.id ist bereits einem anderen Gerät oder Regler zugeordnet. Jeder unabhängig geregelte FKS-SV benötigt eine eigene freie Sender-ID.",
+      "invalid_yaml_tabs": "Der YAML-Code enthält unzulässige Tabulatoren in der Einrückung. Verwende Leerzeichen für die YAML-Einrückung."
     }
   }
 }

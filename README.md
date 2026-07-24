@@ -1,161 +1,83 @@
-# ELTAKO Sensors & Actuators für Home Assistant
+# ELTAKO Sensors & Actuators
 
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-3498db.svg)](https://hacs.xyz/)
-[![Version](https://img.shields.io/badge/Version-0.1.146-3498db.svg)](https://github.com/DenisZEltako/eltako-sensors-actuators/releases)
-[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-3498db.svg)](LICENSE)
+Home-Assistant-Custom-Integration für die von D. Zirnbauer freigegebene ELTAKO-Geräteliste.
 
-Home-Assistant-Integration für unterstützte ELTAKO EnOcean-Sensoren und -Aktoren. 
-Sie verbindet Eltako Gateways lokal über eine serielle Verbindung und legt die erkannten Geräte als Entitäten
-in Home Assistant an. Eine Cloud-Verbindung ist dafür nicht erforderlich.
+## Freigegebener Gerätekatalog (v0.1.153)
 
-> [!IMPORTANT]
-> Dieses Projekt ist eine inoffizielle Community-Integration. Es ist kein
-> offizielles Produkt der ELTAKO GmbH und wird nicht offiziell von der ELTAKO
-> GmbH unterstützt.
+- F2T55 – Taster 2-Kanal EU
+- FT55, F4T55E – Taster 4-Kanal EU
+- FNSN55EB, FNS65EB – Näherungsschalter
+- FTK, FTKB, FFKB – Fenster-/Türkontakt
+- FTKE, FFTE, FFG7B – Fensterkontakt / Fenstergriff (F6-10-00)
+- FFG7B – Fensterkontakt / Fenstergriff (A5-14-09)
+- FBH55ESB, FB55EB – Bewegungsmelder
+- FBH55ESB / FBHT55ESB – Bewegung + Helligkeit automatisch
+- FRWB – Rauchmelder
+- FHMB – Rauch-/Hitzemelder
+- FFT60SB – Temperatur + Feuchte 0…40 °C
+- FLGTF – Temperatur + Feuchte −20…60 °C / 0…100 %
+- FLGTF – TVOC + Temperatur/Feuchte automatisch
+- FCO2TF65 – CO2 + Temperatur + Feuchte
+- FUTH65D / FHK14 / F4HK14 / FAE14SSR – Heizung/Klima Temperatur + Sollwert + Fan
+- FUTH65D – Raumregler Temperatur + Feuchte + Sollwert
+- FUTH65D – Raumregler Temperatur + Feuchte + Belegung
+- FUTH55ED – FHK-Datenübermittlung (A5-10-06)
+- FUTH55ED – FKS Kieback & Peter (A5-20-01)
+- FUTH55ED – FKS-H Hora (A5-20-04)
+- FUTH55ED – 2-Punkt-Regler TF61R / FR62 (A5-38-08)
+- FTR65DSB, FTR55DSB, FTR55EHB, FTR55ESB, FTR65HB, FTRF65HB, FTR55HB, FTR65SB, FTRF65SB, FTR55SB – TF61 und FHK
+- FUTH55ED – Hygrostat (A5-10-12)
+- FKS-SV – Smart Valve / Heizkörper-Stellantrieb
+- FWZ12, FWZ14, DSZ14 – Funk-/Wechselstromzähler kWh
+- F3Z14D – 3-Kanal-S0-Drehstromzähler
+- FWS61, FWG14MS – Wetterstation Wind + Regen + Temperatur
+- FUD14, FUD71, FDG14, FD2G14, FUD61NP-230V, FUD61NPN-230V, FD62NP-230V, FD62NPN-230V
+- FRGBW14, FRGBW71L
+- FSR14-2x, FSR14-4x, FSR71-2x-230V, FSR71NP-2x-230V, FSR71NP-4x-230V
+- FMZ14, FSR61-230V, FSR61NP-230V, FSR61/8-24V UC, FSR61G-230V, FSR61LN-230V, FLC61NP-230V
+- FR62-230V, FR62NP-230V, FL62-230V, FL62NP-230V
+- FSB14, FSB14/12-24V DC, FSB61-230V, FSB71-230V, FSB61NP-230V, FJ62/12-36V DC, FJ62NP-230V
+- FSM60B Betriebsart 1, 2, 3 und 4
 
-## Funktionen
+Nicht aufgeführte Produktbezeichnungen gehören nicht zum freigegebenen Katalog. Gemeinsame EEP-Decoder bleiben intern erhalten, soweit sie für die oben genannten Geräte erforderlich sind.
 
-- Einrichtung über die Home-Assistant-Benutzeroberfläche
-- Lokale Kommunikation über serielle oder TCP-Gateways
-- Import einer mit EEDTOY erzeugten YAML-Konfiguration
-- Unterstützung mehrerer Gateway-Blöcke innerhalb einer Konfiguration
-- Home-Assistant-Entitäten für Sensoren, Binärsensoren, Taster, Schalter,
-  Leuchten, Beschattung und Klima
-- Aktualisierung eingehender Telegramme über `local_push`
-- Deutsche und englische Übersetzungen
-- Installation und Updates über HACS
+## Installation
 
-## Unterstützte Gateways
+Den Ordner `custom_components/eltako_sensors_actuators` nach Home Assistant kopieren und Home Assistant vollständig neu starten.
 
-- ELTAKO FAM14
-- ELTAKO FAM-USB
-- ELTAKO FGW14-USB
+## FUTH55ED (v0.1.153)
 
-## Unterstützte Geräte
+Unterstützte Betriebsarten aus EEDTOY v1.0.88:
 
-Unterstützt werden ausgewählte Sensoren und Aktoren der ELTAKO-Baureihen 14,
-61, 62 und 71. Die tatsächlich angelegten Entitäten richten sich nach den
-Gerätedefinitionen des EEDTOY-YAML-Exports.
+- FHK-Datenübermittlung A5-10-06, Lerntelegramm `40-30-0D-87`
+- FKS Kieback & Peter A5-20-01, Controller-/Antworttelegramme
+- FKS-H Hora A5-20-04, Controller-/Antworttelegramme
+- 2-Punkt-Regler TF61R / FR62 A5-38-08, Lerntelegramm `E0-40-0D-80`
+- Hygrostat A5-10-12, Lerntelegramm `40-90-0D-80`
 
-Dazu gehören unter anderem:
+Der FUTH55ED wird passiv ausgewertet und nicht als FKS-SV-Aktor mit einer virtuellen `sender.id` behandelt.
 
-- Schalt-, Dimm-, Beschattungs- und RGBW-Aktoren
-- Temperatur-, Feuchte-, Luftgüte- und Bewegungssensoren
-- Fenster- und Türkontakte sowie EnOcean-Taster
-- Heizungs- und Klimageräte einschließlich FHK- und FKS-SV-Profilen
-- Stromzähler mit unterstützten EnOcean Equipment Profiles (EEPs)
+## FTR55/65-Familie (v0.1.153)
 
-## EEDTOY
+Unterstützte Modelle: FTR65DSB, FTR55DSB, FTR55EHB, FTR55ESB, FTR65HB, FTRF65HB, FTR55HB, FTR65SB, FTRF65SB und FTR55SB.
 
-Die Geräte- und Gateway-Konfiguration für diese Integration wird mit
-[EEDTOY](https://github.com/DenisZEltako/eedtoy) erstellt. EEDTOY erzeugt den
-YAML-Export, der anschließend über die Optionen der Integration in Home
-Assistant importiert wird.
+- Betriebsart TF61: A5-38-08, Lerntelegramm `E0-40-0D-80`, Heizanforderung AUS `01-00-00-08`, EIN `01-00-00-09`, Hysterese 1 K.
+- Betriebsart FHK: A5-10-06, Lerntelegramm `40-30-0D-87`, DB2 Solltemperatur, DB1 invertierte Isttemperatur, DB0 `0F`.
+- Sollwertbereich 12–28 °C; 8 °C wird als Frostschutz erkannt.
 
+## FDG14 (v0.1.153)
 
-## Installation mit HACS
+- A5-38-08 / FUNC=38 / Command 2.
+- Direkte Helligkeitsvorgabe 0–100 %.
+- Dimmgeschwindigkeit 0–255; Standard `0` nutzt die am FDG14 eingestellte Geschwindigkeit.
+- Lerntelegramm `E0-40-0D-80`.
+- Statusrückmeldungen liefern Ein/Aus, Dimmwert und Dimmgeschwindigkeit an Home Assistant.
 
-HACS muss bereits in Home Assistant installiert sein. Mit dem folgenden Button
-kann das Repository direkt in HACS geöffnet und als benutzerdefiniertes
-Repository hinzugefügt werden:
+## FFG7B (v0.1.153)
 
-[![Home Assistant öffnen und dieses Repository in HACS anzeigen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DenisZEltako&repository=eltako-sensors-actuators&category=integration)
-
-Anschließend:
-
-1. Das Repository in HACS hinzufügen.
-2. **ELTAKO Sensors & Actuators** öffnen und **Herunterladen** auswählen.
-3. Home Assistant neu starten.
-4. **Einstellungen → Geräte & Dienste → Integration hinzufügen** öffnen.
-5. Nach **ELTAKO Sensors & Actuators** suchen und die Einrichtung starten.
-
-### Manuell als benutzerdefiniertes Repository hinzufügen
-
-Falls der Button nicht verwendet werden kann:
-
-1. In Home Assistant **HACS** öffnen.
-2. Oben rechts das Menü öffnen und **Benutzerdefinierte Repositories** wählen.
-3. Diese Repository-Adresse eintragen:
-
-   ```text
-   https://github.com/DenisZEltako/eltako-sensors-actuators
-   ```
-
-4. Als Kategorie **Integration** auswählen und das Repository hinzufügen.
-5. Die Integration herunterladen und Home Assistant neu starten.
-
-## Manuelle Installation ohne HACS
-
-Den Ordner
-
-```text
-custom_components/eltako_sensors_actuators
-```
-
-nach
-
-```text
-/config/custom_components/eltako_sensors_actuators
-```
-
-kopieren und Home Assistant anschließend neu starten.
-
-## Konfiguration
-
-1. Unter **Einstellungen → Geräte & Dienste** die Integration hinzufügen.
-2. Das Gateway sowie die serielle oder Netzwerkverbindung auswählen.
-3. Die Optionen der Integration öffnen.
-4. Die mit [EEDTOY](https://github.com/DenisZEltako/eedtoy) erzeugte
-   YAML-Konfiguration einfügen oder importieren.
-5. Bei mehreren Gateway-Blöcken den Hinweisen im Einrichtungsdialog folgen.
-
-Unter Home Assistant OS und Linux sollte möglichst ein stabiler Gerätepfad wie
-`/dev/serial/by-id/...` verwendet werden. Bezeichnungen wie `/dev/ttyUSB0`
-können sich nach einem Neustart oder erneutem Anschließen des USB-Geräts ändern.
-
-## Aktuelle Version
-
-### 0.1.146
-
-- Für FLGTF wird eine gemeinsame Entität **Letztes Telegramm** pro physischem
-  Gerät verwendet.
-- Der Zeitstempel wird durch die Profile A5-09-0C für TVOC und A5-04-02 für
-  Temperatur und Luftfeuchtigkeit aktualisiert.
-- Bereits vorhandene Diagnoseentitäten für EnOcean-IDs bleiben erhalten.
-- Veraltete doppelte FLGTF-Zeitstempel werden beim Start aus der Entity Registry
-  entfernt.
-- Die Temperaturunterstützung für FBHT55ESB ist enthalten.
-- Im Dialog für den EEDTOY-YAML-Import wird keine Versionsnummer mehr im Titel
-  angezeigt.
-
-## Fehler melden
-
-Fehler und Verbesserungsvorschläge können über die
-[GitHub-Issues](https://github.com/DenisZEltako/eltako-sensors-actuators/issues)
-gemeldet werden. Hilfreich sind dabei:
-
-- Home-Assistant-Version
-- Version dieser Integration
-- Gateway-Modell
-- Betroffenes EEP und Gerätemodell
-- Bereinigter YAML-Geräteabschnitt
-- Relevante Einträge aus dem Home-Assistant-Protokoll
-
-Bitte keine Passwörter, Zugangstoken, privaten Netzwerkdaten oder sonstigen
-persönlichen Informationen veröffentlichen.
-
-## Rechtlicher Hinweis
-
-Dieses Projekt ist eine privat entwickelte, inoffizielle Community-Integration
-für Home Assistant. Es ist kein offizielles Produkt der ELTAKO GmbH und wird
-nicht offiziell von der ELTAKO GmbH unterstützt.
-
-ELTAKO und die genannten Produktbezeichnungen sind Marken der ELTAKO GmbH. Name
-und Logo werden ausschließlich zur Kennzeichnung kompatibler Produkte
-verwendet. Daraus ergibt sich keine offizielle Unterstützung oder Empfehlung.
-
-## Lizenz und Abhängigkeiten
-
-Der Quellcode dieser Integration steht unter der [MIT-Lizenz](LICENSE).
-Hinweise zu verwendeten Drittanbieter-Abhängigkeiten befinden sich in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+- A5-14-09 und F6-10-00 werden anhand des tatsächlich empfangenen ORG automatisch unterschieden, auch wenn im YAML das andere FFG7B-Profil gewählt wurde.
+- A5-14-09 wertet den Fensterzustand robust in Standard- und umgekehrter Byte-Darstellung aus.
+- Unterstützte Zustände: `geschlossen`, `gekippt`, `offen`.
+- A5-14-09 liefert zusätzlich die Batteriespannung.
+- Die Entity-Auswertung besitzt zusätzliche Decoderpfade aus `data_hex`, `value` und dem rohen ESP2-Frame, damit nicht nur „Letztes Telegramm“ aktualisiert wird.
+- F6-10-00 unterstützt zusätzlich die Zweizustandswerte von FTKE/FFTE (`70/50` und `30/10`).

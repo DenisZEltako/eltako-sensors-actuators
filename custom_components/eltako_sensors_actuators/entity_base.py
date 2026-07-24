@@ -106,6 +106,78 @@ def _flgtf_device_base_id(device: dict[str, Any]) -> str:
     return device_id
 
 
+def _device_option(device: dict[str, Any], key: str, default: Any = None) -> Any:
+    if not isinstance(device, dict):
+        return default
+    if key in device and device.get(key) is not None:
+        return device.get(key)
+    raw = device.get("raw") if isinstance(device.get("raw"), dict) else {}
+    return raw.get(key, default)
+
+
+def _futh55ed_mode(device: dict[str, Any]) -> str:
+    """Return the normalized room-controller operating mode.
+
+    ``room_controller_mode`` is the current generic key used for FTR55/65 and
+    future room controllers. ``futh55ed_mode`` remains supported for existing
+    EEDTOY YAML files. TF61 and the older ``two_point`` spelling are normalized
+    to one internal mode so entity routing stays backwards compatible.
+    """
+    value = _device_option(device, "room_controller_mode", None)
+    if value in (None, ""):
+        value = _device_option(device, "futh55ed_mode", "")
+    mode = str(value or "").strip().lower().replace("-", "_")
+    if mode in {"tf61", "tf61r", "two_point", "2_point"}:
+        return "two_point"
+    return mode
+
+
+def _is_futh55ed_device(device: dict[str, Any]) -> bool:
+    """Return True for configured FUTH/FTR room-controller profiles."""
+    if not isinstance(device, dict):
+        return False
+    if _futh55ed_mode(device):
+        return True
+    raw = device.get("raw") if isinstance(device.get("raw"), dict) else {}
+    text = " ".join(str(value or "") for value in (device.get("name"), device.get("model"), device.get("eltako"), raw.get("name"), raw.get("model"), raw.get("eltako"))).upper()
+    return any(model in text for model in ("FUTH55ED", "FTR55", "FTR65", "FTRF65"))
+
+
+def _is_ffg7b_device(device: dict[str, Any]) -> bool:
+    """Return True for the three-state ELTAKO FFG7B window handle.
+
+    New EEDTOY exports carry the explicit ``ffg7b_three_state`` flag.  Name
+    matching keeps manually written and older YAML files compatible.
+    """
+    if not isinstance(device, dict):
+        return False
+    eep = normalize_eep(device.get("eep"))
+    if eep not in ("A5-14-09", "F6-10-00"):
+        return False
+    raw = device.get("raw") if isinstance(device.get("raw"), dict) else {}
+    explicit = device.get("ffg7b_three_state")
+    if explicit is None:
+        explicit = raw.get("ffg7b_three_state")
+    if isinstance(explicit, str):
+        explicit = explicit.strip().lower() in {"1", "true", "yes", "on", "ja"}
+    if explicit is not None:
+        return bool(explicit)
+    text = " ".join(
+        str(value or "")
+        for value in (
+            device.get("name"),
+            device.get("device_type"),
+            device.get("model"),
+            device.get("eltako"),
+            raw.get("name"),
+            raw.get("device_type"),
+            raw.get("model"),
+            raw.get("eltako"),
+        )
+    ).upper()
+    return "FFG7B" in text
+
+
 class EltakoGatewayEntity(Entity):
     """Base entity attached directly to the configured ELTAKO gateway device."""
 
@@ -213,3 +285,14 @@ class EltakoYamlEntity(EltakoBaseEntity):
             "platform": device.get("platform"),
             "gateway": device.get("gateway"),
         }
+        for option in (
+            "room_controller_mode",
+            "hysteresis",
+            "min_target_temperature",
+            "max_target_temperature",
+            "frost_temperature",
+            "dimming_speed",
+        ):
+            value = _device_option(device, option, None)
+            if value is not None:
+                self._attr_extra_state_attributes[option] = value

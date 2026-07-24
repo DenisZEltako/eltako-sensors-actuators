@@ -33,7 +33,7 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
             # FRGBW14 is a Series-14 bus actuator behind FAM14/FGW14-USB.
             # It is not learned by radio from Home Assistant; the YAML must
             # contain the Home Assistant sender id and PCT14/the bus setup
-            # handles the sender assignment. Only wireless FRGBW71L/FWKKW71L
+            # handles the sender assignment. Only wireless FRGBW71L
             # on FAM-USB get the free-profile learn button.
             if gateway_type != "fam-usb":
                 continue
@@ -99,10 +99,8 @@ def _is_rgbw_device(device: dict[str, Any]) -> bool:
         or sender_eep == "07-37-F7"
         or "FRGBW14" in name
         or "FRGBW71" in name
-        or "FWKKW" in name
         or "FRGBW14" in raw_text
         or "FRGBW71" in raw_text
-        or "FWKKW" in raw_text
     )
 
 
@@ -242,7 +240,7 @@ def _is_decentral_rocker_actor(device: dict[str, Any]) -> bool:
             "FLC61", "FLC61NP", "FL62", "FL62NP", "FSB61", "FSB62", "FSB71",
             "FJ62", "FJ62NP", "FJ62NPN",
         )
-    ) or _device_sender_eep(device) in {"F6-02-01", "F6-02-02"}
+    ) or _device_sender_eep(device) in {"F6-02-01"}
 
 
 def _build_teach_in_buttons_for_device(gateway, device: dict[str, Any]) -> list[ButtonEntity]:

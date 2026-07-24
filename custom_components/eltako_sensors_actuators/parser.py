@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from .bus.eep_a5_09_04 import decode_a5_09_04
+from .bus.eep_a5_10_12 import decode_a5_10_12
+from .bus.eep_a5_20_04 import decode_a5_20_04_controller_telegram
+from .bus.eep_ffg7b import decode_ffg7b_a5, decode_ffg7b_rps
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,19 +31,11 @@ def parse_f6_02_01(data: bytes) -> dict[str, Any]:
 def parse_f6_10_00(data: bytes) -> dict[str, Any]:
     if not data:
         raise ValueError("F6-10-00 expects at least one data byte")
-    raw = data[0]
-    if raw in (0xE0, 0x50, 0x10):
-        is_open = True
-    elif raw in (0xF0, 0x70, 0x30):
-        is_open = False
-    else:
-        is_open = bool(raw & 0x10)
-    return {
-        "raw": raw,
-        "open": is_open,
-        "closed": not is_open,
-    }
+    return decode_ffg7b_rps(data[0])
 
+
+def parse_a5_14_09(data: bytes) -> dict[str, Any]:
+    return decode_ffg7b_a5(data)
 
 
 def parse_d5_00_01(data: bytes) -> dict[str, Any]:
@@ -71,23 +66,6 @@ def parse_a5_04_02(data: bytes) -> dict[str, Any]:
     }
 
 
-def parse_a5_04_03(data: bytes) -> dict[str, Any]:
-    if len(data) < 4:
-        raise ValueError(f"A5-04-03 expects 4 data bytes, got {len(data)}")
-    db3, db2, db1, db0 = data[:4]
-    if bytes(data[:4]) == bytes((0x10, 0x18, 0x0D, 0x80)) or not bool(db0 & 0x08):
-        return {"learn": True, "learn_telegram": True, "raw": [db3, db2, db1, db0]}
-    temperature_raw = ((db2 & 0x03) << 8) | db1
-    return {
-        "humidity": round(db3 / 255.0 * 100.0, 1),
-        "temperature": round(-20.0 + (temperature_raw / 1023.0 * 80.0), 1),
-        "temperature_raw_10bit": temperature_raw,
-        "telegram_trigger": "event" if (db0 & 0x01) else "heartbeat",
-        "learn": False,
-        "raw": [db3, db2, db1, db0],
-    }
-
-
 
 def parse_a5_09_04(data: bytes) -> dict[str, Any]:
     return decode_a5_09_04(bytes(data[:4]))
@@ -109,6 +87,14 @@ def parse_a5_09_0c(data: bytes) -> dict[str, Any]:
     if db1 == 0:
         result["tvoc"] = concentration
     return result
+
+
+def parse_a5_10_12(data: bytes) -> dict[str, Any]:
+    return decode_a5_10_12(bytes(data[:4]))
+
+
+def parse_a5_20_04(data: bytes) -> dict[str, Any]:
+    return decode_a5_20_04_controller_telegram(bytes(data[:4]))
 
 
 def parse_a5_20_01(data: bytes) -> dict[str, Any]:
@@ -239,12 +225,14 @@ def parse_a5_13_01(data: bytes) -> dict[str, Any]:
 PARSERS: dict[str, Callable[[bytes], dict[str, Any]]] = {
     "F6-02-01": parse_f6_02_01,
     "F6-10-00": parse_f6_10_00,
+    "A5-14-09": parse_a5_14_09,
     "D5-00-01": parse_d5_00_01,
     "A5-04-02": parse_a5_04_02,
-    "A5-04-03": parse_a5_04_03,
     "A5-09-0C": parse_a5_09_0c,
     "A5-09-04": parse_a5_09_04,
     "A5-20-01": parse_a5_20_01,
+    "A5-20-04": parse_a5_20_04,
+    "A5-10-12": parse_a5_10_12,
     "A5-07-01": parse_a5_07_01,
     "A5-08-01": parse_a5_08_01,
     "A5-13-01": parse_a5_13_01,

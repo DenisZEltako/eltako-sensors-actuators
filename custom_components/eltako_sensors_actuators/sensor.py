@@ -66,11 +66,15 @@ except Exception:  # pragma: no cover
 
 from .const import CONF_DEVICES, DOMAIN
 from .bus.eep_a5_09_04 import decode_a5_09_04
+from .bus.eep_ffg7b import enrich_ffg7b_decoded
 from .entity_base import (
     EltakoBaseEntity,
     EltakoGatewayEntity,
     EltakoYamlEntity,
     _is_flgtf_device,
+    _is_ffg7b_device,
+    _futh55ed_mode,
+    _is_futh55ed_device,
     _flgtf_device_base_id,
     _strip_flgtf_suffix,
     device_key,
@@ -140,8 +144,28 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
         if device.get("id"):
             entities.append(EltakoDeviceAddressSensor(gateway, device))
 
+        if _is_ffg7b_device(device):
+            entities.extend(_ffg7b_entities(gateway, device))
+            continue
+
+        if _is_futh55ed_device(device):
+            mode = _futh55ed_mode(device)
+            if mode == "fhk" and eep == "A5-10-06":
+                entities.extend(_a5_10_06_entities(gateway, device))
+            elif mode == "fks_kp" and eep == "A5-20-01":
+                entities.extend(_futh55ed_fks_kp_entities(gateway, device))
+            elif mode == "fks_hora" and eep == "A5-20-04":
+                entities.extend(_futh55ed_fks_hora_entities(gateway, device))
+            elif mode == "two_point" and eep == "A5-38-08":
+                entities.append(EltakoYamlValueSensor(gateway, device, "last_seen", "Letztes Telegramm", None, None))
+            elif mode == "hygrostat" and eep == "A5-10-12":
+                entities.extend(_futh55ed_hygrostat_entities(gateway, device))
+            else:
+                entities.append(EltakoYamlGenericSensor(gateway, device))
+            continue
+
         if platform == "binary_sensor":
-            if eep in ("F6-02-01", "F6-02-02"):
+            if eep in ("F6-02-01",):
                 entities.extend(_rocker_button_entities(gateway, device))
             elif eep == "D5-00-01":
                 entities.extend(_d5_00_01_entities(gateway, device))
@@ -167,7 +191,7 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
             entities.extend(_a5_08_01_entities(gateway, device))
         elif eep == "A5-10-06":
             entities.extend(_a5_10_06_entities(gateway, device))
-        elif eep in ("A5-04-01", "A5-04-02", "A5-04-03"):
+        elif eep in ("A5-04-01", "A5-04-02"):
             entities.extend(_a5_04_entities(gateway, device))
         elif eep == "A5-09-0C":
             entities.extend(_a5_09_0c_entities(gateway, device))
@@ -608,12 +632,67 @@ def _a5_09_04_entities(gateway, device: dict[str, Any]) -> list[SensorEntity]:
     ]
 
 
+def _futh55ed_fks_kp_entities(gateway, device: dict[str, Any]) -> list[SensorEntity]:
+    return [
+        EltakoYamlValueSensor(gateway, device, "target_temperature_command", "Solltemperaturvorgabe", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+        EltakoYamlValueSensor(gateway, device, "valve_position_command", "Ventilvorgabe", None, PERCENTAGE, state_class="measurement"),
+        EltakoYamlValueSensor(gateway, device, "room_temperature_command", "Raumtemperaturvorgabe", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+        EltakoYamlValueSensor(gateway, device, "last_seen", "Letztes Telegramm", None, None),
+    ]
+
+
+def _futh55ed_fks_hora_entities(gateway, device: dict[str, Any]) -> list[SensorEntity]:
+    return [
+        EltakoYamlValueSensor(gateway, device, "valve_position_command", "Ventilvorgabe", None, PERCENTAGE, state_class="measurement"),
+        EltakoYamlValueSensor(gateway, device, "target_temperature_command", "Solltemperaturvorgabe", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+        EltakoYamlValueSensor(gateway, device, "control_raw", "Steuerdaten Rohwert", None, None),
+        EltakoYamlValueSensor(gateway, device, "last_seen", "Letztes Telegramm", None, None),
+    ]
+
+
+def _futh55ed_hygrostat_entities(gateway, device: dict[str, Any]) -> list[SensorEntity]:
+    return [
+        EltakoYamlValueSensor(gateway, device, "temperature", "Temperatur", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+        EltakoYamlValueSensor(gateway, device, "humidity", "Luftfeuchtigkeit", SensorDeviceClass.HUMIDITY, PERCENTAGE, state_class="measurement"),
+        EltakoYamlValueSensor(gateway, device, "setpoint_raw", "Sollwert Rohwert", None, None),
+        EltakoYamlValueSensor(gateway, device, "last_seen", "Letztes Telegramm", None, None),
+    ]
+
+
 def _a5_20_01_entities(gateway, device: dict[str, Any]) -> list[SensorEntity]:
     return [
         EltakoYamlValueSensor(gateway, device, "temperature", "Temperatur", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
         EltakoYamlValueSensor(gateway, device, "valve_position", "Ventilstellung", None, PERCENTAGE, state_class="measurement"),
         EltakoYamlValueSensor(gateway, device, "last_seen", "Letztes Telegramm", None, None),
     ]
+
+def _ffg7b_entities(gateway, device: dict[str, Any]) -> list[SensorEntity]:
+    """Create the three-state FFG7B window sensor and diagnostics."""
+    eep = normalize_eep(device.get("eep"))
+    entities: list[SensorEntity] = [
+        EltakoYamlEnumSensor(
+            gateway,
+            device,
+            "window_state",
+            "Fensterzustand",
+            ("geschlossen", "gekippt", "offen"),
+        ),
+    ]
+    if eep == "A5-14-09":
+        entities.append(
+            EltakoYamlValueSensor(
+                gateway,
+                device,
+                "battery_voltage",
+                "Batteriespannung",
+                SensorDeviceClass.VOLTAGE,
+                UnitOfElectricPotential.VOLT,
+                state_class="measurement",
+            )
+        )
+    entities.append(EltakoYamlValueSensor(gateway, device, "last_seen", "Letztes Telegramm", None, None))
+    return entities
+
 
 def _d5_00_01_has_battery_voltage(device: dict[str, Any]) -> bool:
     """Return true only for D5 devices that actually send battery voltage.
@@ -668,16 +747,10 @@ def _configured_meter_tariffs(device: dict[str, Any]) -> set[int]:
 
 
 A5_12_01_DB0_TYPED_METER_MODELS = {
-    "FSDG14",
-    "FSS12-12V",
-    "FSS12",
     "FWZ14",
     "FWZ12",
     "F3Z14D",
-    "DSZ14DRS",
-    "DSZ14WDRS",
-    "WSZ14DRS",
-    "WSZ14DRSE",
+    "DSZ14",
 }
 
 
@@ -964,6 +1037,59 @@ def _remove_obsolete_flgtf_last_seen_entities(hass, entry, devices) -> None:
             _LOGGER.exception("Failed to remove obsolete FLGTF last-seen entity %s", entity_id)
 
 
+class EltakoYamlEnumSensor(EltakoYamlEntity, SensorEntity):
+    """Text sensor with a fixed set of valid states."""
+
+    def __init__(
+        self,
+        gateway,
+        device: dict[str, Any],
+        key: str,
+        suffix: str,
+        options: tuple[str, ...],
+    ) -> None:
+        super().__init__(gateway, device, suffix=suffix)
+        self.key = key
+        self._value = None
+        self._attr_device_class = getattr(SensorDeviceClass, "ENUM", None)
+        self._attr_options = list(options)
+        self._attr_icon = "mdi:window-open-variant"
+        self._remove_listener = gateway.register_listener(self._handle_telegram)
+
+    @property
+    def native_value(self):
+        return self._value
+
+    def _handle_telegram(self, telegram) -> None:
+        if str(telegram.sender_id).upper() != str(self.device_config.get("id")).upper():
+            return
+        if _is_ffg7b_device(self.device_config):
+            enrich_ffg7b_decoded(telegram.decoded)
+        value = telegram.decoded.get(self.key)
+        if value not in self._attr_options:
+            return
+        self._value = value
+        self._attr_extra_state_attributes["tilted"] = bool(telegram.decoded.get("tilted"))
+        self._attr_extra_state_attributes["open"] = bool(telegram.decoded.get("open"))
+        for attr_key in (
+            "data_hex",
+            "configured_eep",
+            "detected_eep",
+            "data_layout",
+            "window_state_raw",
+            "window_state_normalized",
+            "window_state_byte_index",
+            "window_state_encoding",
+        ):
+            if attr_key in telegram.decoded:
+                self._attr_extra_state_attributes[attr_key] = telegram.decoded[attr_key]
+        self.schedule_update_ha_state()
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._remove_listener:
+            self._remove_listener()
+
+
 class EltakoYamlValueSensor(EltakoYamlEntity, SensorEntity):
     def __init__(
         self,
@@ -1011,6 +1137,9 @@ class EltakoYamlValueSensor(EltakoYamlEntity, SensorEntity):
             return
 
         configured_eep = normalize_eep(self.device_config.get("eep"))
+
+        if _is_ffg7b_device(self.device_config):
+            enrich_ffg7b_decoded(telegram.decoded)
 
         if configured_eep == "A5-09-04" and self.key != "last_seen":
             verified = _decode_fco2tf65_from_telegram(telegram)

@@ -199,6 +199,21 @@ def _device_option(device: dict[str, Any], key: str, default: Any = None) -> Any
     return raw.get(key, default)
 
 
+def _is_futh55ed_config(device: dict[str, Any]) -> bool:
+    mode = _device_option(device, "room_controller_mode", None)
+    if mode in (None, ""):
+        mode = _device_option(device, "futh55ed_mode", "")
+    if str(mode or "").strip():
+        return True
+    raw = device.get("raw") if isinstance(device.get("raw"), dict) else {}
+    text = " ".join(str(value or "") for value in (device.get("name"), device.get("model"), device.get("eltako"), raw.get("name"), raw.get("model"), raw.get("eltako"))).upper()
+    return any(model in text for model in ("FUTH55ED", "FTR55", "FTR65", "FTRF65"))
+
+
+def _is_fks_sv_config(device: dict[str, Any]) -> bool:
+    return _normalize_eep(device.get("eep")) == "A5-20-01" and not _is_futh55ed_config(device)
+
+
 def _validate_fks_sv_devices(devices: list[dict[str, Any]], gateway: dict[str, Any]) -> None:
     """Validate independent FKS-SV physical/controller ID assignments."""
     physical_seen: set[str] = set()
@@ -213,7 +228,7 @@ def _validate_fks_sv_devices(devices: list[dict[str, Any]], gateway: dict[str, A
     # unique.
     reserved_by_other_devices: dict[str, str] = {}
     for other in devices:
-        if _normalize_eep(other.get("eep")) == "A5-20-01":
+        if _is_fks_sv_config(other):
             continue
         other_name = str(other.get("name") or other.get("id") or "ELTAKO Geraet")
         for candidate_value in (other.get("id"), other.get("sender_id")):
@@ -233,7 +248,7 @@ def _validate_fks_sv_devices(devices: list[dict[str, Any]], gateway: dict[str, A
     }
 
     for device in devices:
-        if _normalize_eep(device.get("eep")) != "A5-20-01":
+        if not _is_fks_sv_config(device):
             continue
         name = str(device.get("name") or device.get("id") or "FKS-SV")
         physical = _normalize_enocean_id(device.get("id"))
@@ -318,10 +333,8 @@ def _is_frgbw_device(device: dict[str, Any]) -> bool:
         or sender_eep == "07-37-F7"
         or "FRGBW14" in name
         or "FRGBW71" in name
-        or "FWKKW" in name
         or "FRGBW14" in raw_text
         or "FRGBW71" in raw_text
-        or "FWKKW" in raw_text
     )
 
 
@@ -453,14 +466,15 @@ def _normalize_frgbw_device(device: dict[str, Any]) -> dict[str, Any]:
 def _deduplicate_exact_devices(devices: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Keep the last logical row for duplicate physical devices.
 
-    Most devices are unique by physical ID plus EEP. FBH55ESB/FBHT55ESB are a
-    special case: A5-07-01 (TF mode) and A5-08-01 (FBH mode) are mutually
-    exclusive operating modes of the same physical transmitter. Keeping both
-    rows makes the gateway lookup ambiguous, so the last selected mode wins.
+    Most devices are unique by physical ID plus EEP. FBH55ESB/FBHT55ESB and
+    FUTH/FTR room controllers are special cases because their operating modes
+    use different EEPs on the same physical transmitter. Keeping multiple modes
+    makes the gateway lookup ambiguous, so the last selected mode wins.
     """
     result: list[dict[str, Any]] = []
     index_by_key: dict[tuple[str, str], int] = {}
     fbh_index_by_physical: dict[str, int] = {}
+    room_controller_index_by_physical: dict[str, int] = {}
     for device in devices:
         physical = _normalize_enocean_id(device.get("id"))
         eep = _normalize_eep(device.get("eep"))
@@ -474,6 +488,13 @@ def _deduplicate_exact_devices(devices: list[dict[str, Any]]) -> list[dict[str, 
                 result[previous_index] = device
                 continue
             fbh_index_by_physical[physical] = len(result)
+
+        if _is_futh55ed_config(device):
+            previous_index = room_controller_index_by_physical.get(physical)
+            if previous_index is not None:
+                result[previous_index] = device
+                continue
+            room_controller_index_by_physical[physical] = len(result)
 
         key = (physical, eep)
         if key in index_by_key:
@@ -505,6 +526,8 @@ def _collapse_logical_devices(devices: list[dict[str, Any]]) -> list[dict[str, A
             result.append(device)
 
     return result
+
+
 
 
 def _extract_devices(gateway: dict[str, Any]) -> list[dict[str, Any]]:
@@ -540,6 +563,14 @@ def _extract_devices(gateway: dict[str, Any]) -> list[dict[str, Any]]:
                 "initial_target_temperature": item.get("initial_target_temperature"),
                 "auto_teach_in": item.get("auto_teach_in"),
                 "fbht_temperature": item.get("fbht_temperature"),
+                "ffg7b_three_state": item.get("ffg7b_three_state"),
+                "room_controller_mode": _clean_string(item.get("room_controller_mode")),
+                "futh55ed_mode": _clean_string(item.get("futh55ed_mode")),
+                "teach_in_telegram": _clean_string(item.get("teach_in_telegram")),
+                "hysteresis": item.get("hysteresis"),
+                "frost_temperature": item.get("frost_temperature"),
+                "dimming_speed": item.get("dimming_speed"),
+                "bidirectional": item.get("bidirectional"),
                 "summer_mode": item.get("summer_mode"),
                 "controller_group": _clean_string(item.get("controller_group")),
                 "allow_shared_sender": item.get("allow_shared_sender"),

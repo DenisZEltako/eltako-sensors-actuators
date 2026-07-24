@@ -102,7 +102,6 @@ def _is_rgbw_device(device: dict[str, Any]) -> bool:
         or sender_eep == "07-37-F7"
         or "FRGBW14" in name
         or "FRGBW71" in name
-        or "FWKKW" in name
         or "FRGBW14" in raw_text
         or "FRGBW71" in raw_text
     )
